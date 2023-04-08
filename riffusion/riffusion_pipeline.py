@@ -232,8 +232,8 @@ class RiffusionPipeline(DiffusionPipeline):
 
         # TODO(hayk): Always generate the seed on CPU?
         if self.device.lower().startswith("mps"):
-            generator_start = torch.Generator(device="cpu").manual_seed(start.seed)
-            generator_end = torch.Generator(device="cpu").manual_seed(end.seed)
+            generator_start = torch.Generator(device="mps").manual_seed(start.seed) #was cpu
+            generator_end = torch.Generator(device="mps").manual_seed(end.seed) #was cpu
         else:
             generator_start = torch.Generator(device=self.device).manual_seed(start.seed)
             generator_end = torch.Generator(device=self.device).manual_seed(end.seed)
@@ -256,7 +256,7 @@ class RiffusionPipeline(DiffusionPipeline):
         # TODO(hayk): Probably this seed should just be 0 always? Make it 100% symmetric. The
         # result is so close no matter the seed that it doesn't really add variety.
         if self.device.lower().startswith("mps"):
-            generator = torch.Generator(device="cpu").manual_seed(start.seed)
+            generator = torch.Generator(device="mps").manual_seed(start.seed)#was cpu
         else:
             generator = torch.Generator(device=self.device).manual_seed(start.seed)
 

@@ -21,6 +21,8 @@ from riffusion.spectrogram_image_converter import SpectrogramImageConverter
 from riffusion.spectrogram_params import SpectrogramParams
 from riffusion.util import base64_util
 
+import time
+
 # Flask app with CORS
 app = flask.Flask(__name__)
 CORS(app)
@@ -40,7 +42,7 @@ def run_app(
     *,
     checkpoint: str = "riffusion/riffusion-model-v1",
     no_traced_unet: bool = False,
-    device: str = "cuda",
+    device: str = "mps",
     host: str = "127.0.0.1",
     port: int = 3013,
     debug: bool = False,
@@ -167,6 +169,13 @@ def compute_request(
     mp3_bytes = io.BytesIO()
     segment.export(mp3_bytes, format="mp3")
     mp3_bytes.seek(0)
+
+    #save segment to disk with timestamp in filename
+ 
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    
+
+    segment.export("/Users/espensommereide/Dropbox/Projects/BEK/DEEP_LEARNING_AUDIO/riffusion/server/"+timestamp+"-serveraudio.wav", format="wav")  
 
     # Export image to JPEG bytes
     image_bytes = io.BytesIO()
