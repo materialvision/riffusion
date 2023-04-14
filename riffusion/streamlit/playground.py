@@ -1,3 +1,4 @@
+import os
 import sys
 
 import streamlit as st
@@ -8,6 +9,7 @@ PAGES = {
     "🎛️ Home": "tasks.home",
     "🌊 Text to Audio": "tasks.text_to_audio",
     "✨ Audio to Audio": "tasks.audio_to_audio",
+    "✨ Trigger Audio to Audio": "tasks.trigger_audio_to_audio",
     "🎭 Interpolation": "tasks.interpolation",
     "✂️ Audio Splitter": "tasks.split_audio",
     "📜 Text to Audio Batch": "tasks.text_to_audio_batch",
@@ -23,7 +25,13 @@ def render() -> None:
         layout="wide",
     )
 
-    page = st.sidebar.selectbox("Page", list(PAGES.keys()))
+    if os.path.exists("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/trigger_file.txt"):
+        page = "✨ Trigger Audio to Audio"
+        os.remove("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/trigger_file.txt")
+    else:
+        page = "✨ Trigger Audio to Audio"
+        #page = st.sidebar.selectbox("Page", list(PAGES.keys()))
+
     assert page is not None
     module = __import__(PAGES[page], fromlist=["render"])
     module.render()
