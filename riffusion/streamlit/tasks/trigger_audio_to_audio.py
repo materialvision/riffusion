@@ -16,6 +16,17 @@ from riffusion.streamlit import util as streamlit_util
 from riffusion.streamlit.tasks.interpolation import get_prompt_inputs, run_interpolation
 from riffusion.util import audio_util
 
+def extract_text_from_file(file_path):
+    with open(file_path, 'r') as file:
+        for line in file:
+            if line.startswith('1,'):
+                # Remove "1," and strip any leading/trailing whitespace
+                extracted_text = line[2:].strip()
+                extracted_text = extracted_text[:-1] #remove last semicolon
+                return extracted_text
+
+    # If no line starts with "1,", return an default string
+    return 'dreampop'
 
 def render() -> None:
     st.subheader("✨ Trigger Audio to Audio")
@@ -80,6 +91,11 @@ def render() -> None:
     while True:
         while True: #wait for trigger file
             if os.path.exists("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/trigger_file.txt"):
+                # Extract text from file
+                file_path = "/Users/espensommereide/Developer/riffusion/riffusion/streamlit/trigger_file.txt"
+                extracted_text = extract_text_from_file(file_path)
+                st.write(extracted_text)
+                print(extracted_text)
                 os.remove("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/trigger_file.txt")
                 # Overwrite the original file with the new content
                 with open("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/ready_file.txt", "w") as file:
@@ -87,7 +103,7 @@ def render() -> None:
                 break
             time.sleep(1)
  
-        predefined_prompt = "dreampop"
+        predefined_prompt = extracted_text
         guidance = 7.0
         seed = random.randint(10, 80)
         denoising = 0.55
