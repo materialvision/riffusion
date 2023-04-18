@@ -316,7 +316,7 @@ def load_magic_mix_pipeline(
     return pipeline
 
 
-@st.cache
+@st.cache_resource #changed from just cache
 def run_img2img_magic_mix(
     prompt: str,
     init_image: Image.Image,
@@ -352,7 +352,7 @@ def run_img2img_magic_mix(
         )
 
 
-@st.cache
+@st.cache_resource #changed from just cache
 def run_img2img(
     prompt: str,
     init_image: Image.Image,

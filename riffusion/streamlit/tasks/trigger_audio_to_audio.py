@@ -121,7 +121,7 @@ def render() -> None:
         audio_file="/Users/espensommereide/Dropbox/Projects/appendix/sleeping_instruments Project/sleeping_riffusion.wav"
         st.write("#### Original")
         st.write(f"Seed: {seed}")
-        st.audio(audio_file)
+        #st.audio(audio_file)
 
         segment = streamlit_util.load_audio_file(audio_file)
 
