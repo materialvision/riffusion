@@ -55,7 +55,7 @@ def render() -> None:
             """
         )
 
-    device = streamlit_util.select_device(st.sidebar)
+    device = "mps"
 
     with st.sidebar:
         num_inference_steps = T.cast(
@@ -159,16 +159,17 @@ def render() -> None:
 
             audio_bytes = io.BytesIO()
             clip_segment.export(audio_bytes, format="wav")
-
+            print("spectrogramming")
             init_image = streamlit_util.spectrogram_image_from_audio(
                 clip_segment,
                 params=params,
                 device=device,
             )
             # TODO(hayk): Roll this into spectrogram_image_from_audio?
+            print("scaling")
             init_image_resized = scale_image_to_32_stride(init_image)
             progress_callback = None
-
+            print("img to img")
             image = streamlit_util.run_img2img(
                     prompt=prompt_input_a.prompt,
                     init_image=init_image_resized,
@@ -183,24 +184,26 @@ def render() -> None:
                 )
             
 
-
+            print("resize")
             # Resize back to original size
             image = image.resize(init_image.size, Image.BICUBIC)
-
+            print("append result images")
             result_images.append(image)
 
             #if show_clip_details:
             #    empty_bin.empty()
             #    right.image(image, use_column_width=False)
-
+            print("riffed segment")
             riffed_segment = streamlit_util.audio_segment_from_spectrogram_image(
                 image=image,
                 params=params,
                 device=device,
             )
+            print("append riffed segments")
             result_segments.append(riffed_segment)
-
+            print("bytes")
             audio_bytes = io.BytesIO()
+            print("export")
             riffed_segment.export(audio_bytes, format="wav")
             """
             if show_clip_details:
@@ -222,6 +225,7 @@ def render() -> None:
                 st.audio(audio_bytes)
             """
         # Combine clips with a crossfade based on overlap
+        print("combined_segment")
         combined_segment = audio_util.stitch_segments(result_segments, crossfade_s=overlap_duration_s)
         combined_segment.export("/Users/espensommereide/Dropbox/Projects/appendix/sleeping_instruments Project/sleeping_riffusion_out.wav", format="wav")
         st.write(f"#### Final Audio ({combined_segment.duration_seconds}s)")
