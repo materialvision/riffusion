@@ -18,7 +18,8 @@ from riffusion.spectrogram_params import SpectrogramParams
 
 # TODO(hayk): Add URL params
 
-DEFAULT_CHECKPOINT = "riffusion/riffusion-model-v1"
+DEFAULT_CHECKPOINT = "/Users/espensommereide/Developer/riffusion-model-v1"
+# DEFAULT_CHECKPOINT = "riffusion/riffusion-model-v1"
 
 AUDIO_EXTENSIONS = ["mp3", "wav", "flac", "webm", "m4a", "ogg"]
 IMAGE_EXTENSIONS = ["png", "jpg", "jpeg"]

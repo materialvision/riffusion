@@ -106,7 +106,7 @@ def render() -> None:
         predefined_prompt = extracted_text
         guidance = 7.0
         seed = random.randint(10, 80)
-        denoising = 0.55
+        denoising = 0.55 #95 tregere men renere
         negative_prompt = None
 
         prompt_input_a = PromptInput(
