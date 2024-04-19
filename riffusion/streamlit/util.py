@@ -293,6 +293,7 @@ def select_checkpoint(container: T.Any = st.sidebar) -> str:
 
 #@st.cache_data
 def load_audio_file(audio_file: io.BytesIO) -> pydub.AudioSegment:
+    print(pydub.AudioSegment.ffmpeg)
     return pydub.AudioSegment.from_file(audio_file)
 
 
@@ -353,7 +354,7 @@ def run_img2img_magic_mix(
         )
 
 
-@st.cache_resource #changed from just cache
+#@st.cache_resource #changed from just cache
 def run_img2img(
     prompt: str,
     init_image: Image.Image,

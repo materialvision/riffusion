@@ -29,8 +29,8 @@ def render() -> None:
         page = "✨ Trigger Audio to Audio"
         os.remove("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/trigger_file.txt")
     else:
-        #page = "✨ Trigger Audio to Audio"
-        page = st.sidebar.selectbox("Page", list(PAGES.keys()))
+        page = "✨ Trigger Audio to Audio"
+        #page = st.sidebar.selectbox("Page", list(PAGES.keys()))
 
     assert page is not None
     module = __import__(PAGES[page], fromlist=["render"])
