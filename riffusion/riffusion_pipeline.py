@@ -10,11 +10,23 @@ import typing as T
 
 import numpy as np
 import torch
-from diffusers.models import AutoencoderKL, UNet2DConditionModel
-from diffusers.pipeline_utils import DiffusionPipeline
-from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
-from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler
-from diffusers.utils import logging
+#from diffusers.models import AutoencoderKL, UNet2DConditionModel
+#from diffusers.pipeline_utils import DiffusionPipeline
+#from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
+#from diffusers.schedulers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler
+#from diffusers.utils import logging
+
+# Updated imports
+from diffusers import (
+    AutoencoderKL,
+    UNet2DConditionModel,
+    DiffusionPipeline,
+    DDIMScheduler,
+    LMSDiscreteScheduler,
+    PNDMScheduler,
+)
+import logging
+
 from huggingface_hub import hf_hub_download
 from PIL import Image
 from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
@@ -23,7 +35,7 @@ from riffusion.datatypes import InferenceInput
 from riffusion.external.prompt_weighting import get_weighted_text_embeddings
 from riffusion.util import torch_util
 
-logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
+logger = logging.getLogger(__name__)  # Standard Python logging
 
 
 class RiffusionPipeline(DiffusionPipeline):

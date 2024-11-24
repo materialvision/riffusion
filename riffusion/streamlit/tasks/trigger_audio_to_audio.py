@@ -107,7 +107,7 @@ def render() -> None:
         guidance = 7.0
         seed = random.randint(10, 80)
         denoising = 0.55 #95 tregere men renere
-        negative_prompt = None
+        negative_prompt = None #'speech' #None
 
         prompt_input_a = PromptInput(
             prompt=predefined_prompt,

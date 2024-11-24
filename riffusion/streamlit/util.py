@@ -18,7 +18,8 @@ from riffusion.spectrogram_params import SpectrogramParams
 
 # TODO(hayk): Add URL params
 
-DEFAULT_CHECKPOINT = "/Users/espensommereide/Developer/riffusion-model-v1"
+DEFAULT_CHECKPOINT = "/Users/espensommereide/Developer/diffusion_convert_ckpt/ostensjo4"
+#DEFAULT_CHECKPOINT = "/Users/espensommereide/Developer/riffusion-model-v1/riffusion-model-v1.ckpt"
 # DEFAULT_CHECKPOINT = "riffusion/riffusion-model-v1"
 
 AUDIO_EXTENSIONS = ["mp3", "wav", "flac", "webm", "m4a", "ogg"]
@@ -70,7 +71,7 @@ def load_stable_diffusion_pipeline(
         checkpoint,
         revision="main",
         torch_dtype=dtype,
-        safety_checker=lambda images, **kwargs: (images, False),
+        safety_checker=None #lambda images, **kwargs: (images, False),
     ).to(device)
 
     pipeline.scheduler = get_scheduler(scheduler, config=pipeline.scheduler.config)
@@ -134,12 +135,18 @@ def load_stable_diffusion_img2img_pipeline(
         print(f"WARNING: Falling back to float32 on {device}, float16 is unsupported")
         dtype = torch.float32
 
+
     pipeline = StableDiffusionImg2ImgPipeline.from_pretrained(
         checkpoint,
         revision="main",
         torch_dtype=dtype,
-        safety_checker=lambda images, **kwargs: (images, False),
+        safety_checker=None #lambda images, **kwargs: (images, False),
     ).to(device)
+    '''
+    pipeline = StableDiffusionImg2ImgPipeline.from_single_file(
+        checkpoint
+    ).to(device)
+    '''
 
     pipeline.scheduler = get_scheduler(scheduler, config=pipeline.scheduler.config)
 
@@ -172,6 +179,7 @@ def run_txt2img(
         generator_device = "cpu" if device.lower().startswith("mps") else device
         generator = torch.Generator(device=generator_device).manual_seed(seed)
 
+        '''
         output = pipeline(
             prompt=prompt,
             num_inference_steps=num_inference_steps,
@@ -181,6 +189,14 @@ def run_txt2img(
             width=width,
             height=height,
         )
+        '''
+        output = pipeline(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            guidance_scale=guidance,
+            num_inference_steps=num_inference_steps,
+        )
+
 
         return output["images"][0]
 
