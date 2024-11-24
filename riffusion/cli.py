@@ -135,7 +135,7 @@ def audio_to_images_batch(
     *,
     audio_dir: str,
     output_dir: str,
-    image_extension: str = "jpg",
+    image_extension: str = "png",
     step_size_ms: int = 10,
     num_frequencies: int = 512,
     min_frequency: int = 0,
@@ -143,7 +143,7 @@ def audio_to_images_batch(
     power_for_image: float = 0.25,
     mono: bool = False,
     sample_rate: int = 44100,
-    device: str = "cuda",
+    device: str = "mps",
     num_threads: T.Optional[int] = None,
     limit: int = -1,
 ):
