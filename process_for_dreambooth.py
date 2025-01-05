@@ -126,6 +126,3 @@ def main():
     move_files_to_folders(args.output_folder, args.output_folder)
 if __name__ == "__main__":
     main()
-
-
-    
