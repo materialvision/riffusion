@@ -3,11 +3,12 @@ import random
 import time
 import os
 import typing as T
+from typing import Dict, Any
 from pathlib import Path
 
 import numpy as np
 import pydub
-import streamlit as st
+#import streamlit as st
 from PIL import Image
 
 from riffusion.datatypes import InferenceInput, PromptInput
@@ -47,93 +48,61 @@ def extract_modeltext_from_file(file_path):
     # If no line starts with "1,", return default values
     return '10', ''
 
-def render() -> None:
-    st.subheader("✨ Trigger Audio to Audio")
-    st.write(
-        """
-    Modify existing audio from a text prompt or interpolate between two.
-    """
-    )
-
-    with st.expander("Help", False):
-        st.write(
-            """
-            This tool allows you to upload an audio file of arbitrary length and modify it with
-            a text prompt. It does this by sweeping over the audio in overlapping clips, doing
-            img2img style transfer with riffusion, then stitching the clips back together with
-            cross fading to eliminate seams.
-
-            Try a denoising strength of 0.4 for light modification and 0.55 for more heavy
-            modification. The best specific denoising depends on how different the prompt is
-            from the source audio. You can play with the seed to get infinite variations.
-            Currently the same seed is used for all clips along the track.
-
-            If the Interpolation check box is enabled, supports entering two sets of prompt,
-            seed, and denoising value and smoothly blends between them along the selected
-            duration of the audio. This is a great way to create a transition.
-            """
-        )
+def main_loop():
 
     device = "mps"
     checkpoint = "/Users/espensommereide/Developer/diffusion_convert_ckpt/phonophani-cap-style-80000"
-    #checkpoint = "/Users/espensommereide/Developer/diffusion_convert_ckpt/ostensjo6"
 
-    with st.sidebar:
-        num_inference_steps = T.cast(
-            int,
-            st.number_input(
-                "Steps per sample", value=25, help="Number of denoising steps per model run"
-            ),
-        )
+    num_inference_steps = 21 #25 best 12 er under 10 sek 11 under 10 for 5 sek
 
-        guidance = st.number_input(
-            "Guidance",
-            value=7.0,
-            help="How much the model listens to the text prompt",
-        )
+    guidance =7.0
 
-        scheduler = st.selectbox(
-            "Scheduler",
-            options=streamlit_util.SCHEDULER_OPTIONS,
-            index=0,
-            help="Which diffusion scheduler to use",
-        )
-        assert scheduler is not None
 
- 
-    show_clip_details = st.sidebar.checkbox("Show Clip Details", True)
-    show_difference = st.sidebar.checkbox("Show Difference", False)
-  
+    '''scheduler = st.selectbox(
+        "Scheduler",
+        options=streamlit_util.SCHEDULER_OPTIONS,
+        index=0,
+        help="Which diffusion scheduler to use",
+    )
+    assert scheduler is not None'''
+
+
     clip_p = get_clip_params()
-    counter = streamlit_util.StreamlitCounter()
-    params = SpectrogramParams()
+    #counter = streamlit_util.StreamlitCounter()
+    params = SpectrogramParams(num_griffin_lim_iters=11)
+    #params.num_griffin_lim_iters=11
 
+    with open("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/ready_file.txt", "w") as file:
+        file.write("1, 1;")
 
     while True:
+        start_time = time.time()
         while True: #wait for trigger file
             if os.path.exists("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/trigger_file.txt"):
                 # Extract text from file
                 file_path = "/Users/espensommereide/Developer/riffusion/riffusion/streamlit/trigger_file.txt"
                 extracted_text = extract_text_from_file(file_path)
-                st.write(extracted_text)
+                #st.write(extracted_text)
                 print(extracted_text)
-
                 # Extract new model from file
                 modelfile_path = "/Users/espensommereide/Developer/riffusion/riffusion/streamlit/model_file.txt"
                 model_time,model_name = extract_modeltext_from_file(modelfile_path)
-                st.write(model_time)
-                st.write(model_name)
+
                 print(model_time+" "+model_name)
                 if model_name!="":
                     checkpoint=model_name
-
+                if model_time!="":
+                    live_duration=int(model_time)
+                else: 
+                    live_duration=int(10)
                 os.remove("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/trigger_file.txt")
                 # Overwrite the original file with the new content
                 with open("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/ready_file.txt", "w") as file:
                     file.write("1, 0;")
                 break
             time.sleep(1)
- 
+
+        params = SpectrogramParams(num_griffin_lim_iters=11)
         predefined_prompt = extracted_text
         guidance = 7.0
         seed = random.randint(10, 80)
@@ -148,41 +117,41 @@ def render() -> None:
             guidance=guidance
         )
 
-        st.write(f"## Counter: {counter.value}")
+        #st.write(f"## Counter: {counter.value}")
         audio_file="/Users/espensommereide/Developer/diffusion_convert_ckpt/sleeping_riffusion.wav"
-        st.write("#### Original")
-        st.write(f"Seed: {seed}")
+        #st.write("#### Original")
+        #st.write(f"Seed: {seed}")
         #st.audio(audio_file)
 
         segment = streamlit_util.load_audio_file(audio_file)
 
         # TODO(hayk): Fix
         if segment.frame_rate != 44100:
-            st.warning("Audio must be 44100Hz. Converting")
+            print("Audio must be 44100Hz. Converting")
             segment = segment.set_frame_rate(44100)
-        st.write(f"Duration: {segment.duration_seconds:.2f}s, Sample Rate: {segment.frame_rate}Hz")
+        #st.write(f"Duration: {segment.duration_seconds:.2f}s, Sample Rate: {segment.frame_rate}Hz")
 
         start_time_s = clip_p["start_time_s"]
         clip_duration_s = clip_p["clip_duration_s"]
         overlap_duration_s = clip_p["overlap_duration_s"]
 
-        duration_s = min(clip_p["duration_s"], segment.duration_seconds - start_time_s)
+        duration_s = min(live_duration, segment.duration_seconds - start_time_s)#min(clip_p["duration_s"], segment.duration_seconds - start_time_s)
         increment_s = clip_duration_s - overlap_duration_s
         clip_start_times = start_time_s + np.arange(0, duration_s - clip_duration_s, increment_s)
 
-        write_clip_details(
+        '''write_clip_details(
             clip_start_times=clip_start_times,
             clip_duration_s=clip_duration_s,
             overlap_duration_s=overlap_duration_s,
-        )
+        )'''
         clip_segments = slice_audio_into_clips(
             segment=segment,
             clip_start_times=clip_start_times,
             clip_duration_s=clip_duration_s,
         )
-        result_images: T.List[Image.Image] = []
+        #result_images: T.List[Image.Image] = []
         result_segments: T.List[pydub.AudioSegment] = []
-        counter.increment()
+        #counter.increment()
 
         if (len(clip_segments)==0):
             clip_segments.append(segment)
@@ -200,30 +169,31 @@ def render() -> None:
                 device=device,
             )
             # TODO(hayk): Roll this into spectrogram_image_from_audio?
-            print("scaling")
-            init_image_resized = scale_image_to_32_stride(init_image)
-            progress_callback = None
+            #print("scaling")
+            #init_image_resized = scale_image_to_32_stride(init_image)
+            #This line would call a function scale_image_to_32_stride to resize the init_image so that its dimensions are multiples of 32. This is often necessary for image processing tasks, especially when dealing with models that require input images with specific size constraints.
+            #progress_callback = None
             print("img to img")
             image = streamlit_util.run_img2img(
                     prompt=prompt_input_a.prompt,
-                    init_image=init_image_resized,
+                    init_image=init_image,
                     denoising_strength=prompt_input_a.denoising,
                     num_inference_steps=num_inference_steps,
                     guidance_scale=guidance,
                     negative_prompt=prompt_input_a.negative_prompt,
                     seed=prompt_input_a.seed,
-                    progress_callback=progress_callback,
+                    progress_callback=None,
                     checkpoint=checkpoint,
                     device=device,
-                    scheduler=scheduler,
+                    scheduler="DPMSolverMultistepScheduler",
                 )
             
 
-            print("resize")
+            #print("resize")
             # Resize back to original size
-            image = image.resize(init_image.size, Image.BICUBIC)
-            print("append result images")
-            result_images.append(image)
+            #image = image.resize(init_image.size, Image.BICUBIC)
+            #print("append result images")
+            #result_images.append(image)
 
             #if show_clip_details:
             #    empty_bin.empty()
@@ -263,8 +233,9 @@ def render() -> None:
         print("combined_segment")
         print("result_segments: ",len(result_segments))
         combined_segment = audio_util.stitch_segments(result_segments, crossfade_s=overlap_duration_s)
+        #combined_segment=result_segments[0]
         combined_segment.export("/Users/espensommereide/Developer/diffusion_convert_ckpt/sleeping_riffusion_out.wav", format="wav")
-        st.write(f"#### Final Audio ({combined_segment.duration_seconds}s)")
+        #st.write(f"#### Final Audio ({combined_segment.duration_seconds}s)")
         #ready file with 1 for max coll
         with open("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/ready_file.txt", "w") as file:
             file.write("1, 1;")
@@ -272,50 +243,30 @@ def render() -> None:
         #output_name = f"{input_name}_{prompt_input_a.prompt.replace(' ', '_')}"
         #streamlit_util.display_and_download_audio(combined_segment, output_name, extension=extension)
         #st.experimental_rerun()
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"total elapsed time: {elapsed_time:.4f} seconds")  
 
-def get_clip_params(advanced: bool = False) -> T.Dict[str, T.Any]:
+def get_clip_params(advanced: bool = False) -> Dict[str, Any]:
     """
-    Render the parameters of slicing audio into clips.
+    Get the parameters of slicing audio into clips.
     """
-    p: T.Dict[str, T.Any] = {}
-
-    cols = st.columns(4)
-
-    p["start_time_s"] = cols[0].number_input(
-        "Start Time [s]",
-        min_value=0.0,
-        value=0.0,
-    )
-    p["duration_s"] = cols[1].number_input(
-        "Duration [s]",
-        min_value=0.0,
-        value=10.0,
-    )
-
+    p: Dict[str, Any] = {}
+    # Hardcoding the values instead of using streamlit for inputs.
+    p["start_time_s"] = 0.0
+    p["duration_s"] = 10.0
+    
     if advanced:
-        p["clip_duration_s"] = cols[2].number_input(
-            "Clip Duration [s]",
-            min_value=3.0,
-            max_value=10.0,
-            value=5.0,
-        )
+        p["clip_duration_s"] = 5.0 # Adjust as needed
+        p["overlap_duration_s"] = 0.2 # Adjust as needed
     else:
         p["clip_duration_s"] = 5.0
-
-    if advanced:
-        p["overlap_duration_s"] = cols[3].number_input(
-            "Overlap Duration [s]",
-            min_value=0.0,
-            max_value=10.0,
-            value=0.2,
-        )
-    else:
         p["overlap_duration_s"] = 0.2
-
+    
     return p
 
 
-def write_clip_details(
+'''def write_clip_details(
     clip_start_times: np.ndarray, clip_duration_s: float, overlap_duration_s: float
 ):
     """
@@ -333,7 +284,7 @@ def write_clip_details(
                 "End Time [s]": clip_start_times + clip_duration_s,
                 "Duration [s]": clip_duration_s,
             }
-        )
+        )'''
 
 
 def slice_audio_into_clips(
@@ -366,3 +317,6 @@ def scale_image_to_32_stride(image: Image.Image) -> Image.Image:
     closest_width = int(np.ceil(image.width / 32) * 32)
     closest_height = int(np.ceil(image.height / 32) * 32)
     return image.resize((closest_width, closest_height), Image.BICUBIC)
+
+if __name__ == "__main__":
+    main_loop()

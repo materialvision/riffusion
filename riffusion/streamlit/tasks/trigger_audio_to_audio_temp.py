@@ -28,25 +28,6 @@ def extract_text_from_file(file_path):
     # If no line starts with "1,", return an default string
     return 'dreampop'
 
-def extract_modeltext_from_file(file_path):
-    with open(file_path, 'r') as file:
-        for line in file:
-            if line.startswith('1,'):
-                # Remove "1," and strip any leading/trailing whitespace
-                extracted_text = line[2:].strip()
-                # Remove the last semicolon
-                extracted_text = extracted_text[:-1]
-                
-                # Split the text into a number and a remaining string by the first space
-                parts = extracted_text.split(' ', 1)
-                if len(parts) == 2:
-                    return parts[0], parts[1]
-                else:
-                    # If there's no space, return the whole text as the second part with an empty number
-                    return '', parts[0]
-    # If no line starts with "1,", return default values
-    return '10', ''
-
 def render() -> None:
     st.subheader("✨ Trigger Audio to Audio")
     st.write(
@@ -75,8 +56,6 @@ def render() -> None:
         )
 
     device = "mps"
-    checkpoint = "/Users/espensommereide/Developer/diffusion_convert_ckpt/phonophani-cap-style-80000"
-    #checkpoint = "/Users/espensommereide/Developer/diffusion_convert_ckpt/ostensjo6"
 
     with st.sidebar:
         num_inference_steps = T.cast(
@@ -117,16 +96,6 @@ def render() -> None:
                 extracted_text = extract_text_from_file(file_path)
                 st.write(extracted_text)
                 print(extracted_text)
-
-                # Extract new model from file
-                modelfile_path = "/Users/espensommereide/Developer/riffusion/riffusion/streamlit/model_file.txt"
-                model_time,model_name = extract_modeltext_from_file(modelfile_path)
-                st.write(model_time)
-                st.write(model_name)
-                print(model_time+" "+model_name)
-                if model_name!="":
-                    checkpoint=model_name
-
                 os.remove("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/trigger_file.txt")
                 # Overwrite the original file with the new content
                 with open("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/ready_file.txt", "w") as file:
@@ -137,7 +106,7 @@ def render() -> None:
         predefined_prompt = extracted_text
         guidance = 7.0
         seed = random.randint(10, 80)
-        denoising = 0.55 #95 tregere men renere
+        denoising = 0.55 #55 tregere men renere
         negative_prompt = None #'speech' #None
 
         prompt_input_a = PromptInput(
@@ -149,7 +118,7 @@ def render() -> None:
         )
 
         st.write(f"## Counter: {counter.value}")
-        audio_file="/Users/espensommereide/Developer/diffusion_convert_ckpt/sleeping_riffusion.wav"
+        audio_file="/Users/espensommereide/Dropbox/Projects/appendix/sleeping_instruments Project/sleeping_riffusion.wav"
         st.write("#### Original")
         st.write(f"Seed: {seed}")
         #st.audio(audio_file)
@@ -162,6 +131,7 @@ def render() -> None:
             segment = segment.set_frame_rate(44100)
         st.write(f"Duration: {segment.duration_seconds:.2f}s, Sample Rate: {segment.frame_rate}Hz")
 
+        '''
         start_time_s = clip_p["start_time_s"]
         clip_duration_s = clip_p["clip_duration_s"]
         overlap_duration_s = clip_p["overlap_duration_s"]
@@ -183,88 +153,86 @@ def render() -> None:
         result_images: T.List[Image.Image] = []
         result_segments: T.List[pydub.AudioSegment] = []
         counter.increment()
-
-        if (len(clip_segments)==0):
-            clip_segments.append(segment)
-        print("clip_segments: ",len(clip_segments))
+        print (clip_segments)
         for i, clip_segment in enumerate(clip_segments):
+        '''
+ #       st.write(f"### Clip {i} at {clip_start_times[i]:.2f}s")
+        #aksepter kun wav de to under her gjør om mp3
+        #audio_bytes = io.BytesIO()
+        #segment.export(audio_bytes, format="wav")
+        print("spectrogramming")
+        init_image = streamlit_util.spectrogram_image_from_audio(
+            segment,
+            params=params,
+            device=device,
+        )
+        # TODO(hayk): Roll this into spectrogram_image_from_audio?
+        #print("scaling")
+        #init_image_resized = scale_image_to_32_stride(init_image)
+        progress_callback = None
+        print("img to img")
+        image = streamlit_util.run_img2img(
+                prompt=prompt_input_a.prompt,
+                init_image=init_image,#_resized,
+                denoising_strength=prompt_input_a.denoising,
+                num_inference_steps=num_inference_steps,
+                guidance_scale=guidance,
+                negative_prompt=prompt_input_a.negative_prompt,
+                seed=prompt_input_a.seed,
+                progress_callback=progress_callback,
+                device=device,
+                scheduler=scheduler,
+            )
+        
 
-            #st.write(f"### Clip {i} at {clip_start_times[i]:.2f}s")
+        print("resize")
+        # Resize back to original size
+        #image = image.resize(init_image.size, Image.BICUBIC)
+        #print("append result images")
+        #result_images.append(image)
 
-            audio_bytes = io.BytesIO()
-            clip_segment.export(audio_bytes, format="wav")
-            print("spectrogramming")
-            init_image = streamlit_util.spectrogram_image_from_audio(
-                clip_segment,
+        #if show_clip_details:
+        #    empty_bin.empty()
+        #    right.image(image, use_column_width=False)
+        print("riffed segment")
+        riffed_segment = streamlit_util.audio_segment_from_spectrogram_image(
+            image=image,
+            params=params,
+            device=device,
+        )
+        #print("append riffed segments")
+        #result_segments.append(riffed_segment)
+        #print("bytes")
+        #audio_bytes = io.BytesIO()
+        #print("export")
+        #riffed_segment.export(audio_bytes, format="wav")
+        """
+        if show_clip_details:
+            right.audio(audio_bytes)
+
+        if show_clip_details and show_difference:
+            diff_np = np.maximum(
+                0, np.asarray(init_image).astype(np.float32) - np.asarray(image).astype(np.float32)
+            )
+            diff_image = Image.fromarray(255 - diff_np.astype(np.uint8))
+            diff_segment = streamlit_util.audio_segment_from_spectrogram_image(
+                image=diff_image,
                 params=params,
                 device=device,
             )
-            # TODO(hayk): Roll this into spectrogram_image_from_audio?
-            print("scaling")
-            init_image_resized = scale_image_to_32_stride(init_image)
-            progress_callback = None
-            print("img to img")
-            image = streamlit_util.run_img2img(
-                    prompt=prompt_input_a.prompt,
-                    init_image=init_image_resized,
-                    denoising_strength=prompt_input_a.denoising,
-                    num_inference_steps=num_inference_steps,
-                    guidance_scale=guidance,
-                    negative_prompt=prompt_input_a.negative_prompt,
-                    seed=prompt_input_a.seed,
-                    progress_callback=progress_callback,
-                    checkpoint=checkpoint,
-                    device=device,
-                    scheduler=scheduler,
-                )
-            
 
-            print("resize")
-            # Resize back to original size
-            image = image.resize(init_image.size, Image.BICUBIC)
-            print("append result images")
-            result_images.append(image)
-
-            #if show_clip_details:
-            #    empty_bin.empty()
-            #    right.image(image, use_column_width=False)
-            print("riffed segment")
-            riffed_segment = streamlit_util.audio_segment_from_spectrogram_image(
-                image=image,
-                params=params,
-                device=device,
-            )
-            print("append riffed segments")
-            result_segments.append(riffed_segment)
-            print("bytes")
             audio_bytes = io.BytesIO()
-            print("export")
-            riffed_segment.export(audio_bytes, format="wav")
-            """
-            if show_clip_details:
-                right.audio(audio_bytes)
-
-            if show_clip_details and show_difference:
-                diff_np = np.maximum(
-                    0, np.asarray(init_image).astype(np.float32) - np.asarray(image).astype(np.float32)
-                )
-                diff_image = Image.fromarray(255 - diff_np.astype(np.uint8))
-                diff_segment = streamlit_util.audio_segment_from_spectrogram_image(
-                    image=diff_image,
-                    params=params,
-                    device=device,
-                )
-
-                audio_bytes = io.BytesIO()
-                diff_segment.export(audio_bytes, format=extension)
-                st.audio(audio_bytes)
-            """
-        # Combine clips with a crossfade based on overlap
+            diff_segment.export(audio_bytes, format=extension)
+            st.audio(audio_bytes)
+        """
+        # Combine clips with a crossfade based on overlap, tre neste for 10 sek
         print("combined_segment")
-        print("result_segments: ",len(result_segments))
-        combined_segment = audio_util.stitch_segments(result_segments, crossfade_s=overlap_duration_s)
-        combined_segment.export("/Users/espensommereide/Developer/diffusion_convert_ckpt/sleeping_riffusion_out.wav", format="wav")
-        st.write(f"#### Final Audio ({combined_segment.duration_seconds}s)")
+        #combined_segment = audio_util.stitch_segments(result_segments, crossfade_s=overlap_duration_s)
+
+        riffed_segment.export("/Users/espensommereide/Dropbox/Projects/appendix/sleeping_instruments Project/sleeping_riffusion_out.wav", format="wav")
+        #riffed_segment.export("/Users/espensommereide/Dropbox/Projects/appendix/sleeping_instruments Project/sleeping_riffusion_out.wav", format="wav") 
+        st.write(f"#### Final Audio ({riffed_segment.duration_seconds}s)")
+        #st.write(f"#### Final Audio ({riffed_segment.duration_seconds}s)")
         #ready file with 1 for max coll
         with open("/Users/espensommereide/Developer/riffusion/riffusion/streamlit/ready_file.txt", "w") as file:
             file.write("1, 1;")
@@ -289,7 +257,7 @@ def get_clip_params(advanced: bool = False) -> T.Dict[str, T.Any]:
     p["duration_s"] = cols[1].number_input(
         "Duration [s]",
         min_value=0.0,
-        value=10.0,
+        value=5.0,
     )
 
     if advanced:
@@ -310,7 +278,7 @@ def get_clip_params(advanced: bool = False) -> T.Dict[str, T.Any]:
             value=0.2,
         )
     else:
-        p["overlap_duration_s"] = 0.2
+        p["overlap_duration_s"] = 0.
 
     return p
 

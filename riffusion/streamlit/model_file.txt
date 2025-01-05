@@ -1,0 +1,1 @@
+1, 10 /Users/espensommereide/Developer/diffusion_convert_ckpt/pasvik-60k;

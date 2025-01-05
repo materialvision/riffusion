@@ -16,9 +16,12 @@ from riffusion.riffusion_pipeline import RiffusionPipeline
 from riffusion.spectrogram_image_converter import SpectrogramImageConverter
 from riffusion.spectrogram_params import SpectrogramParams
 
+from functools import lru_cache
+
 # TODO(hayk): Add URL params
 
-DEFAULT_CHECKPOINT = "/Users/espensommereide/Developer/diffusion_convert_ckpt/ostensjo4"
+DEFAULT_CHECKPOINT = "/Users/espensommereide/Developer/diffusion_convert_ckpt/pasvik-60k"
+#DEFAULT_CHECKPOINT = "/Users/espensommereide/Developer/diffusion_convert_ckpt/ostensjo6"
 #DEFAULT_CHECKPOINT = "/Users/espensommereide/Developer/riffusion-model-v1/riffusion-model-v1.ckpt"
 # DEFAULT_CHECKPOINT = "riffusion/riffusion-model-v1"
 
@@ -36,6 +39,7 @@ SCHEDULER_OPTIONS = [
 
 
 @st.cache_resource
+@lru_cache(maxsize=None)
 def load_riffusion_checkpoint(
     checkpoint: str = DEFAULT_CHECKPOINT,
     no_traced_unet: bool = False,
@@ -52,6 +56,7 @@ def load_riffusion_checkpoint(
 
 
 @st.cache_resource
+@lru_cache(maxsize=None)
 def load_stable_diffusion_pipeline(
     checkpoint: str = DEFAULT_CHECKPOINT,
     device: str = "cuda",
@@ -112,6 +117,7 @@ def get_scheduler(scheduler: str, config: T.Any) -> T.Any:
 
 
 @st.cache_resource
+@lru_cache(maxsize=None)
 def pipeline_lock() -> threading.Lock:
     """
     Singleton lock used to prevent concurrent access to any model pipeline.
@@ -120,6 +126,7 @@ def pipeline_lock() -> threading.Lock:
 
 
 @st.cache_resource
+@lru_cache(maxsize=None)
 def load_stable_diffusion_img2img_pipeline(
     checkpoint: str = DEFAULT_CHECKPOINT,
     device: str = "cuda",
@@ -176,7 +183,8 @@ def run_txt2img(
             scheduler=scheduler,
         )
 
-        generator_device = "cpu" if device.lower().startswith("mps") else device
+        generator_device = device
+        #generator_device = "cpu" if device.lower().startswith("mps") else device
         generator = torch.Generator(device=generator_device).manual_seed(seed)
 
         '''
@@ -202,6 +210,7 @@ def run_txt2img(
 
 
 @st.cache_resource
+@lru_cache(maxsize=None)
 def spectrogram_image_converter(
     params: SpectrogramParams,
     device: str = "cuda",
@@ -226,7 +235,7 @@ def audio_segment_from_spectrogram_image(
     device: str = "cuda",
 ) -> pydub.AudioSegment:
     converter = spectrogram_image_converter(params=params, device=device)
-    return converter.audio_from_spectrogram_image(image)
+    return converter.audio_from_spectrogram_image(image, apply_filters=False) #la inn false på filter som er norm for speed 
 
 
 #@st.cache_data
@@ -314,11 +323,13 @@ def load_audio_file(audio_file: io.BytesIO) -> pydub.AudioSegment:
 
 
 @st.cache_resource
+@lru_cache(maxsize=None)
 def get_audio_splitter(device: str = "cuda"):
     return AudioSplitter(device=device)
 
 
 @st.cache_resource
+@lru_cache(maxsize=None)
 def load_magic_mix_pipeline(
     checkpoint: str = DEFAULT_CHECKPOINT,
     device: str = "cuda",
@@ -335,6 +346,7 @@ def load_magic_mix_pipeline(
 
 
 @st.cache_resource #changed from just cache
+@lru_cache(maxsize=None)
 def run_img2img_magic_mix(
     prompt: str,
     init_image: Image.Image,
@@ -391,7 +403,8 @@ def run_img2img(
             scheduler=scheduler,
         )
 
-        generator_device = "cpu" if device.lower().startswith("mps") else device
+        #generator_device = "cpu" if device.lower().startswith("mps") else device
+        generator_device = device
         generator = torch.Generator(device=generator_device).manual_seed(seed)
 
         num_expected_steps = max(int(num_inference_steps * denoising_strength), 1)

@@ -1,4 +1,5 @@
 import warnings
+import time
 
 import numpy as np
 import pydub
@@ -90,10 +91,10 @@ class SpectrogramConverter:
             sample_rate=params.sample_rate,
             f_min=params.min_frequency,
             f_max=params.max_frequency,
-            max_iter=params.max_mel_iters,
-            tolerance_loss=1e-5,
-            tolerance_change=1e-8,
-            sgdargs=None,
+            #max_iter=params.max_mel_iters,
+            #tolerance_loss=1e-5,
+            #tolerance_change=1e-8,
+            #sgdargs=None,
             norm=params.mel_scale_norm,
             mel_scale=params.mel_scale_type,
         ).to(self.device)
@@ -139,12 +140,15 @@ class SpectrogramConverter:
         Returns:
             audio: Audio segment with channels equal to the batch dimension
         """
+        
         # Move to device
         amplitudes_mel = torch.from_numpy(spectrogram).to(self.device)
-
+        start_time = time.time()
         # Reconstruct the waveform
         waveform = self.waveform_from_mel_amplitudes(amplitudes_mel)
-
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"spec to audio time: {elapsed_time:.4f} seconds")  
         # Convert to audio segment
         segment = audio_util.audio_from_waveform(
             samples=waveform.cpu().numpy(),

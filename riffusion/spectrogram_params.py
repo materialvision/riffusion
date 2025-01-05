@@ -36,7 +36,7 @@ class SpectrogramParams:
     max_mel_iters: int = 200
 
     # Griffin Lim parameters
-    num_griffin_lim_iters: int = 32
+    num_griffin_lim_iters: int = 32 #11 for kjapp mel
 
     # Image parameterization
     power_for_image: float = 0.25

@@ -1,6 +1,7 @@
 import numpy as np
 import pydub
 from PIL import Image
+import time
 
 from riffusion.spectrogram_converter import SpectrogramConverter
 from riffusion.spectrogram_params import SpectrogramParams
@@ -76,6 +77,8 @@ class SpectrogramImageConverter:
             apply_filters: Apply post-processing to improve the reconstructed audio
             max_value: Scaled max amplitude of the spectrogram. Shouldn't matter.
         """
+
+        
         spectrogram = image_util.spectrogram_from_image(
             image,
             max_value=max_value,
